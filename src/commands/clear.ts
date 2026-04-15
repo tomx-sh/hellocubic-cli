@@ -5,17 +5,17 @@ const PRESERVED_FILE_PATTERNS: ReadonlyArray<RegExp> = [
   /^bg\.[^/]+$/i,
   /^background\.[^/]+$/i,
 ];
+const PREFERRED_BACKGROUND_PATTERN = /^background\.[^/]+$/i;
+const FALLBACK_BACKGROUND_PATTERN = /^bg\.[^/]+$/i;
 
 type FileListEntry = string | { name?: string; path?: string; file?: string };
 
 export async function runClearCommand(baseUrl: string): Promise<void> {
   const fileListBody = await getText(baseUrl, "/filelist?dir=%2Fimage");
   const imagePaths = parseImagePaths(fileListBody);
+  const preservedPaths = imagePaths.filter(isPreservedPath);
 
-  const filesToDelete = imagePaths.filter((imagePath) => {
-    const fileName = basename(imagePath);
-    return !PRESERVED_FILE_PATTERNS.some((pattern) => pattern.test(fileName));
-  });
+  const filesToDelete = imagePaths.filter((imagePath) => !isPreservedPath(imagePath));
 
   let deletedCount = 0;
 
@@ -27,11 +27,18 @@ export async function runClearCommand(baseUrl: string): Promise<void> {
     deletedCount += 1;
   }
 
+  const selectedImage = pickBackgroundPath(preservedPaths);
+  if (selectedImage) {
+    const search = new URLSearchParams({ img: selectedImage });
+    await getText(baseUrl, `/set?${search.toString()}`);
+  }
+
   printJsonOrText(
     JSON.stringify({
       deleted: deletedCount,
-      preserved: imagePaths.length - deletedCount,
+      preserved: preservedPaths.length,
       total: imagePaths.length,
+      selectedImage: selectedImage ?? null,
     }),
   );
 }
@@ -142,4 +149,18 @@ function normalizeAndDedupeImagePaths(
   }
 
   return Array.from(deduped);
+}
+
+function isPreservedPath(imagePath: string): boolean {
+  const fileName = basename(imagePath);
+  return PRESERVED_FILE_PATTERNS.some((pattern) => pattern.test(fileName));
+}
+
+function pickBackgroundPath(paths: string[]): string | undefined {
+  const sorted = [...paths].sort((a, b) => a.localeCompare(b));
+
+  return (
+    sorted.find((path) => PREFERRED_BACKGROUND_PATTERN.test(basename(path))) ??
+    sorted.find((path) => FALLBACK_BACKGROUND_PATTERN.test(basename(path)))
+  );
 }
