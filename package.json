@@ -3,9 +3,14 @@
   "module": "src/index.ts",
   "type": "module",
   "private": true,
+  "bin": {
+    "hellocubic-cli": "dist/hellocubic-cli"
+  },
   "scripts": {
     "start": "bun run src/index.ts",
-    "cli": "bun run src/index.ts"
+    "cli": "bun run src/index.ts",
+    "build": "bun build --compile ./src/index.ts --outfile ./dist/hellocubic-cli",
+    "install:global": "bun run build && bun link"
   },
   "devDependencies": {
     "@types/bun": "latest"
