@@ -61,5 +61,43 @@ bun run cli delete-file --ip 192.168.1.42 --file "/image/photo.jpg"
 Clear image directory:
 
 ```bash
-bun run cli clear-images --ip 192.168.1.42
+bun run cli clear-all-images --ip 192.168.1.42
+```
+
+Clear image directory but keep `bg.*` and `background.*`:
+
+```bash
+bun run cli clear --ip 192.168.1.42
+```
+
+Generate a local notification image (without upload/select yet):
+
+```bash
+bun run cli generate-image \
+  --template notification \
+  --title "Build finished" \
+  --content "All checks passed on main branch." \
+  --app github \
+  --out ./generated/notification.jpg
+```
+
+Format is automatic:
+- app preset resolved as GIF => generated image is GIF
+- static app visual => generated image is JPEG
+
+Generate + upload + select a notification in one call:
+
+```bash
+bun run cli notify \
+  --ip 192.168.1.42 \
+  --title "Build finished" \
+  --content "All checks passed on main branch." \
+  --app github \
+  --name notification-build.jpg
+```
+
+For debugging endpoint responses:
+
+```bash
+bun run cli notify --ip 192.168.1.42 --title "hello" --content "world" --app slack --raw
 ```

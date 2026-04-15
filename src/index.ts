@@ -1,7 +1,10 @@
 #!/usr/bin/env bun
-import { runClearImagesCommand } from "./commands/clear-images.ts";
+import { runClearAllImagesCommand } from "./commands/clear-all-images.ts";
+import { runClearCommand } from "./commands/clear.ts";
 import { runDeleteFileCommand } from "./commands/delete-file.ts";
+import { runGenerateImageCommand } from "./commands/generate-image.ts";
 import { runListImagesCommand } from "./commands/list-images.ts";
+import { runNotifyCommand } from "./commands/notify.ts";
 import { runReadCommand } from "./commands/read.ts";
 import { runSelectImageCommand } from "./commands/select-image.ts";
 import { runSetCommand } from "./commands/set.ts";
@@ -24,10 +27,23 @@ if (toBoolean(args.help) || command === "help") {
   process.exit(0);
 }
 
-const ip = requiredString(args.ip, "ip");
-const baseUrl = normalizeBaseUrl(ip);
+const requiresDeviceIp: ReadonlySet<Command> = new Set([
+  "read",
+  "set",
+  "list-images",
+  "upload-image",
+  "select-image",
+  "delete-file",
+  "clear",
+  "clear-all-images",
+  "notify",
+]);
 
 try {
+  const baseUrl = requiresDeviceIp.has(command)
+    ? normalizeBaseUrl(requiredString(args.ip, "ip"))
+    : "";
+
   switch (command) {
     case "read":
       await runReadCommand(baseUrl);
@@ -47,8 +63,17 @@ try {
     case "delete-file":
       await runDeleteFileCommand(baseUrl, args);
       break;
-    case "clear-images":
-      await runClearImagesCommand(baseUrl);
+    case "clear":
+      await runClearCommand(baseUrl);
+      break;
+    case "clear-all-images":
+      await runClearAllImagesCommand(baseUrl);
+      break;
+    case "generate-image":
+      await runGenerateImageCommand(args);
+      break;
+    case "notify":
+      await runNotifyCommand(baseUrl, args);
       break;
     default:
       fail(`unknown command: ${String(command)}`);

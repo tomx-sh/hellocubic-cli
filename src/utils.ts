@@ -7,26 +7,37 @@ export type Command =
   | "upload-image"
   | "select-image"
   | "delete-file"
-  | "clear-images"
+  | "clear"
+  | "clear-all-images"
+  | "generate-image"
+  | "notify"
   | "help";
 
 export type CliArgs = {
   _: Array<string | number | boolean>;
   help?: unknown;
   h?: unknown;
+  raw?: unknown;
   ip?: unknown;
   i?: unknown;
   autoplay?: unknown;
   interval?: unknown;
   file?: unknown;
   name?: unknown;
+  template?: unknown;
+  title?: unknown;
+  content?: unknown;
+  app?: unknown;
+  out?: unknown;
+  width?: unknown;
+  height?: unknown;
 };
 
 export const helpText = `
 hellocubic-cli
 
 Usage:
-  bun run src/index.ts <command> --ip <ip_or_host>
+  bun run src/index.ts <command> [--ip <ip_or_host>]
 
 Commands:
   read
@@ -48,11 +59,23 @@ Commands:
   delete-file --file <path_or_name>
     GET /delete?file=<urlencoded_path_or_name>
 
-  clear-images
+  clear
+    Delete all files in /image except bg.* and background.*
+
+  clear-all-images
     GET /set?clear=image
+
+  generate-image --template notification --title <text> [--content <text>] --app <identifier>
+                 [--out <output_path>] [--width <pixels>] [--height <pixels>]
+    Generate a local image file from a template (auto format: gif app => gif, static app => jpg)
+
+  notify --ip <ip_or_host> --title <text> [--content <text>] --app <identifier>
+         [--name <remote_name>] [--width <pixels>] [--height <pixels>] [--raw]
+    Generate + upload + select a notification image in one call (auto format)
 
 Global options:
   --ip, -i     Device IP/host (example: 192.168.1.42 or http://192.168.1.42)
+  --raw        Print raw endpoint responses (useful for debugging)
   --help, -h   Show help
 `.trim();
 
@@ -62,8 +85,21 @@ export function parseCliArgs(argv: string[]): CliArgs {
       h: "help",
       i: "ip",
     },
-    string: ["ip", "file", "name", "autoplay", "interval"],
-    boolean: ["help"],
+    string: [
+      "ip",
+      "file",
+      "name",
+      "autoplay",
+      "interval",
+      "template",
+      "title",
+      "content",
+      "app",
+      "out",
+      "width",
+      "height",
+    ],
+    boolean: ["help", "raw"],
   }) as CliArgs;
 }
 
@@ -78,6 +114,17 @@ export function toBoolean(value: unknown): boolean {
 
 export function optionalString(value: unknown): string | undefined {
   return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+export function normalizeDeviceImagePath(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.startsWith("/")) {
+    return trimmed;
+  }
+  if (trimmed.startsWith("image/")) {
+    return `/${trimmed}`;
+  }
+  return `/image/${trimmed}`;
 }
 
 export function requiredString(value: unknown, name: string): string {
